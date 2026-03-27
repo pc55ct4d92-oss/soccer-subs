@@ -127,6 +127,9 @@ router.get('/:id/stats', async (req, res) => {
       let goalkeeperBlocks = 0;
       let gamesAttended = 0;
       let totalMinutes = 0;
+      let offenseMinutes = 0;
+      let defenseMinutes = 0;
+      let gkMinutes = 0;
       let debt = 0;
 
       for (const game of games) {
@@ -137,6 +140,9 @@ router.get('/:id/stats', async (req, res) => {
         const halfBlockCount = 3; // 3 blocks per half
         totalBlocksAttended += halfBlockCount * 2;
         totalMinutes += gp.totalMinutes;
+        offenseMinutes += gp.offenseMinutes;
+        defenseMinutes += gp.defenseMinutes;
+        gkMinutes += gp.gkMinutes;
 
         // Debt: expected minutes this game minus actual minutes
         const attendingGPs = game.gamePlayers.filter((gp) => gp.attending);
@@ -172,6 +178,9 @@ router.get('/:id/stats', async (req, res) => {
         goalkeeperBlocks,
         sitRate: avgSitRate,
         totalMinutes,
+        offenseMinutes,
+        defenseMinutes,
+        gkMinutes,
         debt,
       };
     });
