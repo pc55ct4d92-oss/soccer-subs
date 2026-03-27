@@ -17,6 +17,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   const [creatingGame, setCreatingGame] = useState(false);
   const [locks, setLocks] = useState([]);
   const [debtMap, setDebtMap] = useState({});
+  const [swapSheet, setSwapSheet] = useState(null); // { playerId, blockIndex } | null
 
   useEffect(() => {
     if (!activeSeason) return;
@@ -147,6 +148,35 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         ? prev.filter((l) => !(l.playerId === playerId && l.blockIndex === blockIndex))
         : [...prev, { playerId, blockIndex }];
     });
+  };
+
+  const doSwap = (outPlayerId) => {
+    const { playerId: inPlayerId, blockIndex } = swapSheet;
+    const half = blockIndex < 3 ? 1 : 2;
+    const blockNumber = (blockIndex % 3) + 1;
+
+    setPlan((prev) =>
+      prev.map((block) => {
+        if (block.half !== half || block.blockNumber !== blockNumber) return block;
+        return {
+          ...block,
+          blockPlayers: block.blockPlayers.map((bp) => {
+            if (bp.playerId === outPlayerId) return { ...bp, isOnField: false };
+            if (bp.playerId === inPlayerId) return { ...bp, isOnField: true };
+            return bp;
+          }),
+        };
+      })
+    );
+
+    setLocks((prev) => {
+      const filtered = prev.filter(
+        (l) => !((l.playerId === inPlayerId || l.playerId === outPlayerId) && l.blockIndex === blockIndex)
+      );
+      return [...filtered, { playerId: inPlayerId, blockIndex }, { playerId: outPlayerId, blockIndex }];
+    });
+
+    setSwapSheet(null);
   };
 
   const generatePlan = async () => {
@@ -294,9 +324,41 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
       {plan && plan.length > 0 && (
         <div style={{ marginTop: '1rem' }}>
           <h3 className="subsection" style={{ paddingLeft: '0.25rem' }}>Plan Preview</h3>
-          <BlockCards plan={plan} players={players} onSitPlayerTap={() => {}} />
+          <BlockCards plan={plan} players={players} onSitPlayerTap={(playerId, blockIndex) => setSwapSheet({ playerId, blockIndex })} />
         </div>
       )}
+
+      {swapSheet && (() => {
+        const inPlayer = players.find((p) => p.id === swapSheet.playerId);
+        const inName = inPlayer ? inPlayer.name.split(' ')[0] : `#${swapSheet.playerId}`;
+        const half = swapSheet.blockIndex < 3 ? 1 : 2;
+        const blockNumber = (swapSheet.blockIndex % 3) + 1;
+        const block = plan?.find((b) => b.half === half && b.blockNumber === blockNumber);
+        const fieldPlayers = block?.blockPlayers.filter((bp) => bp.isOnField && bp.role !== 'goalkeeper') || [];
+        return (
+          <>
+            <div className="sheet-backdrop" onClick={() => setSwapSheet(null)} />
+            <div className="sheet">
+              <div className="sheet-title">Swap in {inName}</div>
+              <div className="sheet-sub">Block {blockNumber} · {half === 1 ? '1st' : '2nd'} half · Pick who comes off.</div>
+              <div className="sheet-list">
+                {fieldPlayers.map((bp) => {
+                  const outPlayer = players.find((p) => p.id === bp.playerId);
+                  const outName = outPlayer ? outPlayer.name.split(' ')[0] : `#${bp.playerId}`;
+                  return (
+                    <button key={bp.playerId} className="sheet-row" onClick={() => doSwap(bp.playerId)}>
+                      <span className="sheet-out">{outName}</span>
+                      <span className="sheet-arrow">→</span>
+                      <span className="sheet-in">{inName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button className="sheet-cancel" onClick={() => setSwapSheet(null)}>Cancel</button>
+            </div>
+          </>
+        );
+      })()}
 
       <style>{`
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
@@ -318,6 +380,16 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         .debt-badge { margin-left: 6px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; padding: 1px 4px; }
         .debt-pos { background: #fff3cd; color: #856404; }
         .debt-neg { background: #f0f0f0; color: #888; }
+        .sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; }
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 16px 16px 0 0; padding: 1.25rem 1rem 2rem; z-index: 101; box-shadow: 0 -4px 24px rgba(0,0,0,0.15); }
+        .sheet-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .sheet-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
+        .sheet-list { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem; }
+        .sheet-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: white; min-height: 48px; cursor: pointer; text-align: left; }
+        .sheet-out { flex: 1; font-size: 0.95rem; font-weight: 600; }
+        .sheet-arrow { color: var(--text-muted); font-size: 0.9rem; }
+        .sheet-in { flex: 1; font-size: 0.95rem; font-weight: 600; color: #155724; text-align: right; }
+        .sheet-cancel { width: 100%; padding: 0.75rem; background: var(--border); color: var(--text); border: none; border-radius: var(--radius); font-size: 0.95rem; font-weight: 600; min-height: 48px; cursor: pointer; }
       `}</style>
     </div>
   );
