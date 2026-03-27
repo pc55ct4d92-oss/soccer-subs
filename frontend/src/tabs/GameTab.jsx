@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { api } from '../api';
 
 const BLOCK_DURATION = 8 * 60; // 8 minutes in seconds
 
@@ -17,8 +18,8 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
   useEffect(() => {
     if (!activeSeason) return;
     Promise.all([
-      fetch(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
-      fetch(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
     ]).then(([g, p]) => {
       setGames(g);
       setPlayers(p);
@@ -30,7 +31,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
   useEffect(() => {
     if (!selectedGame) return;
     setLoading(true);
-    fetch(`/api/games/${selectedGame.id}/plan`)
+    api(`/api/games/${selectedGame.id}/plan`)
       .then((r) => r.json())
       .then((blocks) => {
         setPlan(blocks.length > 0 ? blocks : null);
@@ -69,7 +70,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
   const toggleRole = async (blockPlayerId, currentRole) => {
     const nextRole = currentRole === 'offense' ? 'defense' : 'offense';
     try {
-      const res = await fetch(`/api/blockplayers/${blockPlayerId}`, {
+      const res = await api(`/api/blockplayers/${blockPlayerId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: nextRole }),

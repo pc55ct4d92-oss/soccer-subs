@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../api';
 
 export default function RosterTab({ activeSeason }) {
   const [players, setPlayers] = useState([]);
@@ -11,8 +12,8 @@ export default function RosterTab({ activeSeason }) {
     setLoading(true);
 
     Promise.all([
-      fetch(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
-      fetch(`/api/seasons/${activeSeason.id}/stats`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/stats`).then((r) => r.json()),
     ])
       .then(([players, stats]) => {
         setPlayers(players);

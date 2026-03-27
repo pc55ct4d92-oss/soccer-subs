@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from './api';
 import RosterTab from './tabs/RosterTab';
 import SeasonTab from './tabs/SeasonTab';
 import SetupTab from './tabs/SetupTab';
@@ -18,7 +19,7 @@ export default function App() {
   const [activeGame, setActiveGame] = useState(null);
 
   useEffect(() => {
-    fetch('/api/seasons')
+    api('/api/seasons')
       .then((r) => r.json())
       .then((seasons) => {
         const active = seasons.find((s) => s.isActive) || seasons[0] || null;

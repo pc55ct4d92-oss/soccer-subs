@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../api';
 
 export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   const [games, setGames] = useState([]);
@@ -14,8 +15,8 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   useEffect(() => {
     if (!activeSeason) return;
     Promise.all([
-      fetch(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
-      fetch(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/players`).then((r) => r.json()),
     ]).then(([g, p]) => {
       setGames(g);
       setPlayers(p);
@@ -27,7 +28,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   useEffect(() => {
     if (!selectedGame) return;
     setLoading(true);
-    fetch(`/api/games/${selectedGame.id}/setup`)
+    api(`/api/games/${selectedGame.id}/setup`)
       .then((r) => r.json())
       .then((data) => {
         // Fill in any missing players
@@ -53,7 +54,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         setLoading(false);
       });
 
-    fetch(`/api/games/${selectedGame.id}/plan`)
+    api(`/api/games/${selectedGame.id}/plan`)
       .then((r) => r.json())
       .then((blocks) => setPlan(blocks.length > 0 ? blocks : null))
       .catch(() => setPlan(null));
@@ -88,7 +89,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
     if (!selectedGame || !setup) return;
     setSaving(true);
     try {
-      await fetch(`/api/games/${selectedGame.id}/setup`, {
+      await api(`/api/games/${selectedGame.id}/setup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ players: setup.gamePlayers }),
@@ -104,7 +105,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
     setGenerating(true);
     try {
       await saveSetup();
-      const res = await fetch(`/api/games/${selectedGame.id}/generate-plan`, {
+      const res = await api(`/api/games/${selectedGame.id}/generate-plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locks: [] }),
@@ -112,7 +113,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
       const planData = await res.json();
       if (res.ok) {
         // Reload plan from DB
-        const blocks = await fetch(`/api/games/${selectedGame.id}/plan`).then((r) => r.json());
+        const blocks = await api(`/api/games/${selectedGame.id}/plan`).then((r) => r.json());
         setPlan(blocks);
         setActiveGame(selectedGame);
       } else {

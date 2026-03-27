@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../api';
 
 export default function SeasonTab({ activeSeason, activeGame, setActiveGame }) {
   const [games, setGames] = useState([]);
@@ -12,8 +13,8 @@ export default function SeasonTab({ activeSeason, activeGame, setActiveGame }) {
     setLoading(true);
 
     Promise.all([
-      fetch(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
-      fetch(`/api/seasons/${activeSeason.id}/stats`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json()),
+      api(`/api/seasons/${activeSeason.id}/stats`).then((r) => r.json()),
     ])
       .then(([games, stats]) => {
         setGames(games);
@@ -108,7 +109,7 @@ function GameDetail({ game }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/games/${game.id}/plan`)
+    api(`/api/games/${game.id}/plan`)
       .then((r) => r.json())
       .then((blocks) => {
         setPlan(blocks);
