@@ -44,11 +44,15 @@ model Game {
 }
 
 model GamePlayer {
-  id         Int     @id @default(autoincrement())
-  gameId     Int
-  playerId   Int
-  attending  Boolean @default(true)
-  goalieHalf Int?    // null = not goalie, 1 = H1, 2 = H2
+  id             Int     @id @default(autoincrement())
+  gameId         Int
+  playerId       Int
+  attending      Boolean @default(true)
+  goalieHalf     Int?    // null = not goalie, 1 = H1, 2 = H2
+  totalMinutes   Float   @default(0)
+  offenseMinutes Float   @default(0)
+  defenseMinutes Float   @default(0)
+  gkMinutes      Float   @default(0)
 
   game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)

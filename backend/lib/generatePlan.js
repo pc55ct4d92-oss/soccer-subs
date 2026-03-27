@@ -153,18 +153,20 @@ function generatePlan(game, allGames, locks = []) {
 
 /**
  * Build sit-priority map from historical data.
- * Higher value = player has sat less than expected = should sit sooner now.
+ * Higher value = player has played fewer minutes than expected = should sit sooner now.
  *
- * expectedSat - actualSat: positive means they've been sitting less than average,
- * so they have higher priority to sit in the next game.
+ * For each past game the player attended:
+ *   expectedMinutes = teamTotalMinutes / attendingCount
+ *   debt += expectedMinutes - player.totalMinutes
+ *
+ * Positive debt = played less than their share = higher sit priority.
  */
 function buildSitPriorityMap(attending, allGames, currentGameId) {
   const map = {};
 
   for (const gp of attending) {
     const pid = gp.playerId;
-    let totalBlocks = 0;
-    let satBlocks = 0;
+    let debt = 0;
 
     for (const game of allGames) {
       if (game.id === currentGameId) continue;
@@ -172,17 +174,13 @@ function buildSitPriorityMap(attending, allGames, currentGameId) {
       const gamePlayer = game.gamePlayers.find((g) => g.playerId === pid);
       if (!gamePlayer || !gamePlayer.attending) continue;
 
-      totalBlocks += 6;
-
-      for (const block of game.blocks) {
-        const bp = block.blockPlayers.find((b) => b.playerId === pid);
-        if (bp && !bp.isOnField) satBlocks++;
-      }
+      const attendingGPs = game.gamePlayers.filter((g) => g.attending);
+      const teamMinutes = attendingGPs.reduce((sum, g) => sum + g.totalMinutes, 0);
+      const expectedMinutes = attendingGPs.length > 0 ? teamMinutes / attendingGPs.length : 0;
+      debt += expectedMinutes - gamePlayer.totalMinutes;
     }
 
-    // Target: 4 sit per block out of 11 players = 4/11 sit rate per block
-    const expectedSat = totalBlocks * (4 / 11);
-    map[pid] = expectedSat - satBlocks; // positive = needs to sit more
+    map[pid] = debt; // positive = played less than expected = higher sit priority
   }
 
   return map;

@@ -126,6 +126,8 @@ router.get('/:id/stats', async (req, res) => {
       let defenseBlocks = 0;
       let goalkeeperBlocks = 0;
       let gamesAttended = 0;
+      let totalMinutes = 0;
+      let debt = 0;
 
       for (const game of games) {
         const gp = game.gamePlayers.find((gp) => gp.playerId === player.id);
@@ -134,6 +136,13 @@ router.get('/:id/stats', async (req, res) => {
         gamesAttended++;
         const halfBlockCount = 3; // 3 blocks per half
         totalBlocksAttended += halfBlockCount * 2;
+        totalMinutes += gp.totalMinutes;
+
+        // Debt: expected minutes this game minus actual minutes
+        const attendingGPs = game.gamePlayers.filter((gp) => gp.attending);
+        const teamMinutes = attendingGPs.reduce((sum, gp) => sum + gp.totalMinutes, 0);
+        const expectedMinutes = attendingGPs.length > 0 ? teamMinutes / attendingGPs.length : 0;
+        debt += expectedMinutes - gp.totalMinutes;
 
         for (const block of game.blocks) {
           const bp = block.blockPlayers.find((bp) => bp.playerId === player.id);
@@ -150,8 +159,6 @@ router.get('/:id/stats', async (req, res) => {
       const totalBlocksSat = totalBlocksAttended - totalBlocksOnField;
       const avgSitRate = totalBlocksAttended > 0 ? totalBlocksSat / totalBlocksAttended : 0;
 
-      // Debt: blocks sat minus expected (avg sit rate × attended blocks)
-      // Computed relative to team average below
       return {
         playerId: player.id,
         name: player.name,
@@ -164,21 +171,18 @@ router.get('/:id/stats', async (req, res) => {
         defenseBlocks,
         goalkeeperBlocks,
         sitRate: avgSitRate,
+        totalMinutes,
+        debt,
       };
     });
 
-    // Compute team average sit rate to derive debt
+    // Team average sit rate (kept for reference)
     const attendingStats = stats.filter((s) => s.totalBlocksAttended > 0);
     const totalAttended = attendingStats.reduce((sum, s) => sum + s.totalBlocksAttended, 0);
     const totalSat = attendingStats.reduce((sum, s) => sum + s.totalBlocksSat, 0);
     const teamAvgSitRate = totalAttended > 0 ? totalSat / totalAttended : 0;
 
-    const statsWithDebt = stats.map((s) => ({
-      ...s,
-      debt: s.totalBlocksSat - Math.round(teamAvgSitRate * s.totalBlocksAttended),
-    }));
-
-    res.json({ teamAvgSitRate, players: statsWithDebt });
+    res.json({ teamAvgSitRate, players: stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
