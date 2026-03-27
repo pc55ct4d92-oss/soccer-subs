@@ -41,7 +41,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   }, [activeSeason]);
 
   useEffect(() => {
-    if (!selectedGame) return;
+    if (!selectedGame || !players || players.length === 0) return;
     setLoading(true);
     api(`/api/games/${selectedGame.id}/setup`)
       .then((r) => r.json())
@@ -338,7 +338,7 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         return (
           <>
             <div className="sheet-backdrop" onClick={() => setSwapSheet(null)} />
-            <div className="sheet">
+            <div className="sheet" onClick={(e) => e.stopPropagation()}>
               <div className="sheet-title">Swap in {inName}</div>
               <div className="sheet-sub">Block {blockNumber} · {half === 1 ? '1st' : '2nd'} half · Pick who comes off.</div>
               <div className="sheet-list">
@@ -400,7 +400,14 @@ const BLOCK_TIMES = ['0–8m', '8–16m', '16–24m'];
 function BlockCards({ plan, players, onSitPlayerTap }) {
   const playerName = (id) => {
     const p = players.find((pl) => pl.id === id);
-    return p ? p.name.split(' ')[0] : `#${id}`;
+    if (!p) return `#${id}`;
+    const firstName = p.name.split(' ')[0];
+    const hasDuplicate = players.some((pl) => pl.id !== p.id && pl.name.split(' ')[0] === firstName);
+    if (hasDuplicate) {
+      const lastName = p.name.split(' ')[1];
+      return lastName ? `${firstName} ${lastName[0]}` : firstName;
+    }
+    return firstName;
   };
 
   const renderHalf = (half) => (
