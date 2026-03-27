@@ -282,9 +282,9 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
       )}
 
       {plan && plan.length > 0 && (
-        <div className="card" style={{ marginTop: '1rem' }}>
-          <h3 className="subsection">Plan Preview</h3>
-          <PlanGrid plan={plan} players={players} locks={locks} onToggleLock={toggleLock} />
+        <div style={{ marginTop: '1rem' }}>
+          <h3 className="subsection" style={{ paddingLeft: '0.25rem' }}>Plan Preview</h3>
+          <BlockCards plan={plan} players={players} onSitPlayerTap={() => {}} />
         </div>
       )}
 
@@ -310,67 +310,61 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   );
 }
 
-function PlanGrid({ plan, players, locks, onToggleLock }) {
+const BLOCK_TIMES = ['0–8m', '8–16m', '16–24m'];
+
+function BlockCards({ plan, players, onSitPlayerTap }) {
   const playerName = (id) => {
     const p = players.find((pl) => pl.id === id);
     return p ? p.name.split(' ')[0] : `#${id}`;
   };
 
-  const isLocked = (playerId, blockIndex) =>
-    locks.some((l) => l.playerId === playerId && l.blockIndex === blockIndex);
+  const renderHalf = (half) => (
+    <div key={half} className="bc-half">
+      <div className="bc-half-label">{half === 1 ? '1st Half' : '2nd Half'}</div>
+      <div className="bc-row">
+        {[1, 2, 3].map((bn) => {
+          const blockIndex = (half - 1) * 3 + (bn - 1);
+          const block = plan.find((b) => b.half === half && b.blockNumber === bn);
+          if (!block) return null;
+          const gk = block.blockPlayers.find((bp) => bp.isOnField && bp.role === 'goalkeeper');
+          const field = block.blockPlayers.filter((bp) => bp.isOnField && bp.role !== 'goalkeeper');
+          const sitting = block.blockPlayers.filter((bp) => !bp.isOnField);
+          return (
+            <div key={bn} className="bc-card">
+              <div className="bc-time">{BLOCK_TIMES[bn - 1]}</div>
+              {gk && <div className="bc-gk">{playerName(gk.playerId)}</div>}
+              {field.map((bp) => (
+                <div key={bp.playerId} className="bc-field">{playerName(bp.playerId)}</div>
+              ))}
+              {sitting.map((bp) => (
+                <button
+                  key={bp.playerId}
+                  className="bc-sitting"
+                  onClick={() => onSitPlayerTap(bp.playerId, blockIndex)}
+                >
+                  ↓ {playerName(bp.playerId)}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="plan-grid">
-      <div className="plan-header">
-        <div className="plan-cell label" />
-        {[1, 2, 3].map((bn) => <div key={bn} className="plan-cell label">B{bn}</div>)}
-        {[1, 2, 3].map((bn) => <div key={bn + 10} className="plan-cell label">B{bn}</div>)}
-      </div>
-      <div className="plan-header">
-        <div className="plan-cell label" />
-        <div className="plan-cell half-label" style={{ gridColumn: 'span 3' }}>Half 1</div>
-        <div className="plan-cell half-label" style={{ gridColumn: 'span 3' }}>Half 2</div>
-      </div>
-
-      {/* Get all players from plan */}
-      {Array.from(new Set(plan.flatMap((b) => b.blockPlayers.map((bp) => bp.playerId)))).map((pid) => (
-        <div key={pid} className="plan-row">
-          <div className="plan-cell name">{playerName(pid)}</div>
-          {[1, 2].flatMap((half) =>
-            [1, 2, 3].map((bn) => {
-              const blockIndex = (half - 1) * 3 + (bn - 1);
-              const block = plan.find((b) => b.half === half && b.blockNumber === bn);
-              const bp = block?.blockPlayers.find((bp) => bp.playerId === pid);
-              const locked = isLocked(pid, blockIndex);
-              return (
-                <button
-                  key={`${half}-${bn}`}
-                  className={`plan-cell plan-cell-btn role-${bp?.isOnField ? (bp.role || 'on') : 'off'}${locked ? ' locked' : ''}`}
-                  onClick={() => onToggleLock(pid, blockIndex)}
-                >
-                  {locked ? '🔒' : bp?.role === 'goalkeeper' ? 'GK' : bp?.role === 'offense' ? 'O' : bp?.role === 'defense' ? 'D' : bp?.isOnField ? '●' : '—'}
-                </button>
-              );
-            })
-          )}
-        </div>
-      ))}
-
+    <div className="bc-wrap">
+      {renderHalf(1)}
+      {renderHalf(2)}
       <style>{`
-        .plan-grid { font-size: 0.75rem; overflow-x: auto; }
-        .plan-header { display: grid; grid-template-columns: 60px repeat(6, 1fr); }
-        .plan-row { display: grid; grid-template-columns: 60px repeat(6, 1fr); }
-        .plan-cell { padding: 3px 2px; text-align: center; border-bottom: 1px solid var(--border); }
-        .plan-cell-btn { background: none; border: none; border-bottom: 1px solid var(--border); border-radius: 0; min-height: unset; padding: 4px 2px; font-size: 0.75rem; cursor: pointer; }
-        .plan-cell-btn.locked { background: #fff3cd; }
-        .plan-cell.label { color: var(--text-muted); font-weight: 600; }
-        .plan-cell.half-label { color: var(--text-muted); font-weight: 700; }
-        .plan-cell.name { text-align: left; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .plan-cell.role-offense { color: #155724; font-weight: 700; }
-        .plan-cell.role-defense { color: #004085; font-weight: 700; }
-        .plan-cell.role-goalkeeper { color: #856404; font-weight: 700; }
-        .plan-cell.role-on { color: #155724; }
-        .plan-cell.role-off { color: #721c24; }
+        .bc-wrap { display: flex; flex-direction: column; gap: 1rem; }
+        .bc-half-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; padding-left: 0.25rem; }
+        .bc-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+        .bc-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem; display: flex; flex-direction: column; gap: 2px; }
+        .bc-time { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+        .bc-gk { font-size: 0.8rem; font-weight: 700; color: #856404; background: #fff3cd; border-radius: 4px; padding: 3px 5px; }
+        .bc-field { font-size: 0.8rem; color: #155724; padding: 2px 0; }
+        .bc-sitting { font-size: 0.8rem; color: #721c24; background: none; border: none; border-radius: 4px; padding: 4px 2px; min-height: 36px; width: 100%; text-align: left; cursor: pointer; display: block; }
       `}</style>
     </div>
   );
