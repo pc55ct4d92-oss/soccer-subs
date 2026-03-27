@@ -40,7 +40,7 @@ export default function App() {
       <main className="app-main">
         {activeTab === 'roster' && <RosterTab {...ctx} />}
         {activeTab === 'season' && <SeasonTab {...ctx} />}
-        {activeTab === 'setup' && <SetupTab {...ctx} />}
+        {activeTab === 'setup' && <SetupTab {...ctx} setActiveTab={setActiveTab} />}
         {activeTab === 'game' && <GameTab {...ctx} />}
       </main>
 

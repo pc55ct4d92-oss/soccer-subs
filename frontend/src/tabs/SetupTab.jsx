@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 
-export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
+export default function SetupTab({ activeSeason, activeGame, setActiveGame, setActiveTab }) {
   const [games, setGames] = useState([]);
   const [players, setPlayers] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -325,6 +325,17 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         <div style={{ marginTop: '1rem' }}>
           <h3 className="subsection" style={{ paddingLeft: '0.25rem' }}>Plan Preview</h3>
           <BlockCards plan={plan} players={players} onSitPlayerTap={(playerId, blockIndex) => setSwapSheet({ playerId, blockIndex })} />
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <button className="secondary" onClick={generatePlan} disabled={generating} style={{ flex: 1 }}>
+              {generating ? 'Generating…' : 'Regenerate'}
+            </button>
+            <button className="primary" style={{ flex: 1 }} onClick={() => { setActiveGame(selectedGame); setActiveTab('game'); }}>
+              Start Game →
+            </button>
+          </div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
+            Tap a red sitting player to swap manually. Locks kept on regenerate.
+          </p>
         </div>
       )}
 
