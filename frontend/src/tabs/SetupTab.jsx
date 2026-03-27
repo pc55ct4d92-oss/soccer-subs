@@ -321,9 +321,9 @@ function PlanGrid({ plan, players }) {
               return (
                 <div
                   key={`${half}-${bn}`}
-                  className={`plan-cell ${bp?.isOnField ? 'on' : 'off'}`}
+                  className={`plan-cell role-${bp?.isOnField ? (bp.role || 'on') : 'off'}`}
                 >
-                  {bp?.role === 'goalkeeper' ? 'GK' : bp?.isOnField ? '●' : '—'}
+                  {bp?.role === 'goalkeeper' ? 'GK' : bp?.role === 'offense' ? 'O' : bp?.role === 'defense' ? 'D' : bp?.isOnField ? '●' : '—'}
                 </div>
               );
             })
@@ -339,8 +339,11 @@ function PlanGrid({ plan, players }) {
         .plan-cell.label { color: var(--text-muted); font-weight: 600; }
         .plan-cell.half-label { color: var(--text-muted); font-weight: 700; }
         .plan-cell.name { text-align: left; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .plan-cell.on { color: #155724; }
-        .plan-cell.off { color: #721c24; }
+        .plan-cell.role-offense { color: #155724; font-weight: 700; }
+        .plan-cell.role-defense { color: #004085; font-weight: 700; }
+        .plan-cell.role-goalkeeper { color: #856404; font-weight: 700; }
+        .plan-cell.role-on { color: #155724; }
+        .plan-cell.role-off { color: #721c24; }
       `}</style>
     </div>
   );
