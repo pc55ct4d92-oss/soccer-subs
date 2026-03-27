@@ -11,6 +11,10 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [showNewGame, setShowNewGame] = useState(false);
+  const [newGameNumber, setNewGameNumber] = useState('');
+  const [newGameDate, setNewGameDate] = useState('');
+  const [creatingGame, setCreatingGame] = useState(false);
 
   useEffect(() => {
     if (!activeSeason) return;
@@ -100,6 +104,31 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
     setSaving(false);
   };
 
+  const createGame = async (e) => {
+    e.preventDefault();
+    if (!activeSeason || !newGameNumber) return;
+    setCreatingGame(true);
+    try {
+      const res = await api(`/api/seasons/${activeSeason.id}/games`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gameNumber: parseInt(newGameNumber), date: newGameDate || null }),
+      });
+      const created = await res.json();
+      if (!res.ok) { setError(created.error); return; }
+      const updated = await api(`/api/seasons/${activeSeason.id}/games`).then((r) => r.json());
+      setGames(updated);
+      setSelectedGame(created);
+      setShowNewGame(false);
+      setNewGameNumber('');
+      setNewGameDate('');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setCreatingGame(false);
+    }
+  };
+
   const generatePlan = async () => {
     if (!selectedGame || !setup) return;
     setGenerating(true);
@@ -140,7 +169,34 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
       {error && <div className="error">{error}</div>}
 
       <div className="card">
-        <label className="field-label">Game</label>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+          <label className="field-label" style={{ margin: 0 }}>Game</label>
+          <button className="new-game-toggle" onClick={() => setShowNewGame((v) => !v)}>
+            {showNewGame ? 'Cancel' : '+ New game'}
+          </button>
+        </div>
+        {showNewGame && (
+          <form onSubmit={createGame} className="new-game-form">
+            <input
+              type="number"
+              className="new-game-input"
+              placeholder="Game #"
+              value={newGameNumber}
+              onChange={(e) => setNewGameNumber(e.target.value)}
+              required
+              min="1"
+            />
+            <input
+              type="date"
+              className="new-game-input"
+              value={newGameDate}
+              onChange={(e) => setNewGameDate(e.target.value)}
+            />
+            <button type="submit" className="primary" disabled={creatingGame} style={{ whiteSpace: 'nowrap' }}>
+              {creatingGame ? 'Creating…' : 'Create'}
+            </button>
+          </form>
+        )}
         <select
           className="select"
           value={selectedGame?.id || ''}
@@ -218,6 +274,9 @@ export default function SetupTab({ activeSeason, activeGame, setActiveGame }) {
         .subsection { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; }
         .field-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; }
         .select { width: 100%; font-size: 1rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: white; }
+        .new-game-toggle { font-size: 0.75rem; color: var(--green); background: none; border: none; padding: 0; min-height: unset; cursor: pointer; font-weight: 600; }
+        .new-game-form { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+        .new-game-input { font-size: 0.9rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius); background: white; flex: 1; min-width: 80px; }
         .player-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
         .player-row:last-child { border-bottom: none; }
         .player-name { flex: 1; font-size: 0.95rem; }
