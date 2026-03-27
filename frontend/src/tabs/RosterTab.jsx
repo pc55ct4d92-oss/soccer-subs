@@ -55,9 +55,9 @@ export default function RosterTab({ activeSeason }) {
                 <span>{s.gamesAttended}G</span>
                 <span>{s.totalBlocksOnField}▲ / {s.totalBlocksSat}▽</span>
                 <span className={`debt ${s.debt > 0 ? 'debt-pos' : s.debt < 0 ? 'debt-neg' : ''}`}>
-                  Debt: {s.debt > 0 ? '+' : ''}{s.debt}
+                  Debt: {s.debt > 0 ? '+' : ''}{s.debt.toFixed(1)}
                 </span>
-                <span>{s.offenseBlocks}O / {s.defenseBlocks}D / {s.goalkeeperBlocks}GK</span>
+                <span>{Math.round(s.offenseMinutes)}O / {Math.round(s.defenseMinutes)}D / {Math.round(s.gkMinutes)}GK</span>
               </div>
             ) : (
               <div className="player-stats muted">No games yet</div>
@@ -74,8 +74,8 @@ export default function RosterTab({ activeSeason }) {
         .player-name { font-weight: 600; font-size: 1rem; }
         .player-stats { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-muted); }
         .debt { font-weight: 600; }
-        .debt-pos { color: #856404; }
-        .debt-neg { color: #155724; }
+        .debt-pos { color: #dc3545; }
+        .debt-neg { color: #198754; }
         .muted { color: var(--text-muted); font-size: 0.8rem; }
       `}</style>
     </div>
