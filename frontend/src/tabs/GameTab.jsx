@@ -416,7 +416,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
                   <button className="secondary" onClick={() => { setTimerSeconds(BLOCK_DURATION); setTimerRunning(false); }}>
                     Reset
                   </button>
-                  <button className="primary" onClick={advanceBlock} disabled={currentBlockIdx >= 5}>
+                  <button className="primary" onClick={advanceBlock} disabled={isGameOver}>
                     Next Block →
                   </button>
                 </div>
