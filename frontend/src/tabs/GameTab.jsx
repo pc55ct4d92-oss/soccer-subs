@@ -357,23 +357,29 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
           <div className="card">
             <h3 className="subsection">On Field ({onField.length})</h3>
             <div className="player-grid">
-              {onField.map((bp) => (
+              {onField.filter((bp) => bp.role !== 'goalkeeper').map((bp) => (
                 <button
                   key={bp.id ?? bp.playerId}
                   className={`field-btn role-${bp.role || 'none'}`}
-                  onClick={() => bp.role !== 'goalkeeper' && toggleRole(bp.id, bp.role)}
+                  onClick={() => toggleRole(bp.id, bp.role)}
                 >
                   <span className="field-name">{playerName(bp.playerId)}</span>
                   <span className="field-role">{bp.role || '—'}</span>
-                  {bp.role !== 'goalkeeper' && (
-                    <span
-                      className="field-leave"
-                      onClick={(e) => { e.stopPropagation(); setLeaveSheet({ playerId: bp.playerId, blockPlayerId: bp.id, role: bp.role }); }}
-                    >×</span>
-                  )}
+                  <span
+                    className="field-leave"
+                    onClick={(e) => { e.stopPropagation(); setLeaveSheet({ playerId: bp.playerId, blockPlayerId: bp.id, role: bp.role }); }}
+                  >×</span>
                 </button>
               ))}
             </div>
+            {onField.filter((bp) => bp.role === 'goalkeeper').map((bp) => (
+              <div key={bp.id ?? bp.playerId} style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                <div className="field-btn role-goalkeeper" style={{ width: '100%', flexDirection: 'row', justifyContent: 'center', gap: '0.5rem' }}>
+                  <span className="field-name">{playerName(bp.playerId)}</span>
+                  <span className="field-role">GOALKEEPER</span>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="card">
@@ -398,25 +404,14 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
             const comingOff = currentBlock.blockPlayers.filter((bp) =>
               bp.isOnField && nextBlock.blockPlayers.find((n) => n.playerId === bp.playerId && !n.isOnField)
             );
-            const comingOn = currentBlock.blockPlayers.filter((bp) =>
-              !bp.isOnField && nextBlock.blockPlayers.find((n) => n.playerId === bp.playerId && n.isOnField)
-            );
-            if (comingOff.length === 0 && comingOn.length === 0) return null;
+            if (comingOff.length === 0) return null;
             return (
               <div className="card">
-                <h3 className="subsection">Next Subs</h3>
-                <div className="subs-list">
-                  {Array.from({ length: Math.max(comingOff.length, comingOn.length) }).map((_, i) => {
-                    const off = comingOff[i];
-                    const on = comingOn[i];
-                    return (
-                      <div key={i} className="sub-row">
-                        {off && <span className="sub-off">↓ {playerName(off.playerId)}</span>}
-                        {off && on && <span className="sub-arrow"> → </span>}
-                        {on && <span className="sub-on">↑ {playerName(on.playerId)}</span>}
-                      </div>
-                    );
-                  })}
+                <h3 className="subsection">Coming Off</h3>
+                <div className="sitting-list">
+                  {comingOff.map((bp) => (
+                    <div key={bp.playerId} className="sitting-player">{playerName(bp.playerId)}</div>
+                  ))}
                 </div>
               </div>
             );
