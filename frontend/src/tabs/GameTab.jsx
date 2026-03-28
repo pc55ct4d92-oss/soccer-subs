@@ -297,6 +297,41 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
               ))}
             </div>
           </div>
+
+          {(() => {
+            const nextBlock = !isHalftime && currentBlockIdx < 5 ? plan[currentBlockIdx + 1] : null;
+            if (!nextBlock) return null;
+            const comingOff = currentBlock.blockPlayers.filter((bp) =>
+              bp.isOnField && nextBlock.blockPlayers.find((n) => n.playerId === bp.playerId && !n.isOnField)
+            );
+            const comingOn = currentBlock.blockPlayers.filter((bp) =>
+              !bp.isOnField && nextBlock.blockPlayers.find((n) => n.playerId === bp.playerId && n.isOnField)
+            );
+            if (comingOff.length === 0 && comingOn.length === 0) return null;
+            return (
+              <div className="card">
+                <h3 className="subsection">Next Subs</h3>
+                <div className="subs-list">
+                  {comingOff.map((bp) => {
+                    const incoming = comingOn.find((n) => {
+                      const nNext = nextBlock.blockPlayers.find((x) => x.playerId === n.playerId);
+                      return nNext?.isOnField;
+                    });
+                    return (
+                      <div key={bp.playerId} className="sub-row">
+                        <span className="sub-off">↓ {playerName(bp.playerId)}</span>
+                      </div>
+                    );
+                  })}
+                  {comingOn.map((bp) => (
+                    <div key={bp.playerId} className="sub-row">
+                      <span className="sub-on">↑ {playerName(bp.playerId)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -324,6 +359,10 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
         .field-role { font-size: 0.7rem; margin-top: 2px; text-transform: uppercase; opacity: 0.8; }
         .sitting-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
         .sitting-player { background: #f8d7da; color: #721c24; padding: 0.4rem 0.75rem; border-radius: var(--radius); font-size: 0.9rem; }
+        .subs-list { display: flex; flex-direction: column; gap: 0.25rem; }
+        .sub-row { font-size: 0.95rem; padding: 0.2rem 0; }
+        .sub-off { color: #721c24; }
+        .sub-on { color: #155724; }
       `}</style>
     </div>
   );
