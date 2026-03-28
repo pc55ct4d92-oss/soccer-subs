@@ -3,6 +3,17 @@ const router = express.Router();
 const prisma = require('../db');
 const generatePlan = require('../lib/generatePlan');
 
+// GET /api/games/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const game = await prisma.game.findUnique({ where: { id: parseInt(req.params.id) } });
+    if (!game) return res.status(404).json({ error: 'Not found' });
+    res.json(game);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/games/:id
 router.patch('/:id', async (req, res) => {
   try {

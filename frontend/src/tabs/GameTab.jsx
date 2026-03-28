@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
+import { saveSession, clearSession, loadSession } from '../gameSession';
 
 const BLOCK_DURATION = 8 * 60; // 8 minutes in seconds
 
@@ -69,6 +70,31 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
       .then((r) => r.json())
       .then((data) => setGoals(data))
       .catch(() => {});
+  }, [selectedGame]);
+
+  // Reload recovery — restore timer/block state from localStorage if session matches
+  useEffect(() => {
+    if (!selectedGame) return;
+    const session = loadSession();
+    if (!session || session.activeGameId !== selectedGame.id) return;
+
+    setCurrentBlockIdx(session.currentBlockIndex);
+    setIsHalftime(session.isHalftime);
+
+    if (session.isHalftime) return;
+
+    if (session.blockStartTime != null) {
+      const elapsed = Math.floor((Date.now() - session.blockStartTime) / 1000);
+      setTimerSeconds(Math.max(BLOCK_DURATION - elapsed, 0));
+      setBlockStartTime(session.blockStartTime);
+      setTimerRunning(true);
+    }
+
+    if (session.halfStartTime != null) {
+      const halfElapsed = Math.floor((Date.now() - session.halfStartTime) / 1000);
+      setHalfTimerSeconds(halfElapsed);
+      setHalfTimerRunning(true);
+    }
   }, [selectedGame]);
 
   // Half timer — counts up, never pauses
@@ -158,17 +184,36 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
       return;
     }
 
+    const nextBlockIdx = currentBlockIdx + 1;
+
     if (currentBlockIdx === 2) {
       setIsHalftime(true);
       setTimerRunning(false);
       setHalfTimerRunning(false);
       setHalfTimerSeconds(0);
       setBlockStartTime(null);
+      saveSession({
+        activeGameId: selectedGame.id,
+        currentBlockIndex: nextBlockIdx,
+        currentHalf: 2,
+        blockStartTime: null,
+        halfStartTime: null,
+        isHalftime: true,
+      });
     } else {
-      setBlockStartTime(Date.now());
+      const now = Date.now();
+      setBlockStartTime(now);
       setTimerRunning(true);
+      saveSession({
+        activeGameId: selectedGame.id,
+        currentBlockIndex: nextBlockIdx,
+        currentHalf: currentBlock?.half ?? 1,
+        blockStartTime: now,
+        halfStartTime: now,
+        isHalftime: false,
+      });
     }
-    setCurrentBlockIdx((i) => i + 1);
+    setCurrentBlockIdx(nextBlockIdx);
     setTimerSeconds(BLOCK_DURATION);
   };
 
@@ -331,6 +376,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
             </tbody>
           </table>
           <button className="primary" style={{ width: '100%', marginTop: '1rem' }} onClick={() => {
+            clearSession();
             setActiveGame(null);
             setIsGameOver(false);
             setActiveTab('season');
@@ -383,11 +429,20 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
                 <div className="halftime-heading">Halftime</div>
                 <div className="halftime-countdown">{formatTime(halftimeSeconds)}</div>
                 <button className="primary" style={{ width: '100%' }} onClick={() => {
+                  const now = Date.now();
                   setIsHalftime(false);
                   setHalfTimerSeconds(0);
                   setHalfTimerRunning(true);
-                  setBlockStartTime(Date.now());
+                  setBlockStartTime(now);
                   setTimerRunning(true);
+                  saveSession({
+                    activeGameId: selectedGame.id,
+                    currentBlockIndex: currentBlockIdx,
+                    currentHalf: 2,
+                    blockStartTime: now,
+                    halfStartTime: now,
+                    isHalftime: false,
+                  });
                 }}>
                   Start 2nd Half
                 </button>
@@ -405,8 +460,17 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
                     className={timerRunning ? 'secondary' : 'primary'}
                     onClick={() => {
                       if (!timerRunning && blockStartTime === null) {
-                        setBlockStartTime(Date.now());
+                        const now = Date.now();
+                        setBlockStartTime(now);
                         setHalfTimerRunning(true);
+                        saveSession({
+                          activeGameId: selectedGame.id,
+                          currentBlockIndex: currentBlockIdx,
+                          currentHalf: currentBlock?.half ?? 1,
+                          blockStartTime: now,
+                          halfStartTime: now,
+                          isHalftime: false,
+                        });
                       }
                       setTimerRunning((r) => !r);
                     }}

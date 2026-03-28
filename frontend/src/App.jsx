@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from './api';
+import { loadSession } from './gameSession';
 import RosterTab from './tabs/RosterTab';
 import SeasonTab from './tabs/SeasonTab';
 import SetupTab from './tabs/SetupTab';
@@ -26,6 +27,18 @@ export default function App() {
         setActiveSeason(active);
       })
       .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const session = loadSession();
+    if (!session?.activeGameId) return;
+    api(`/api/games/${session.activeGameId}`)
+      .then((r) => r.json())
+      .then((game) => {
+        setActiveGame(game);
+        setActiveTab('game');
+      })
+      .catch(() => {});
   }, []);
 
   const ctx = { activeSeason, setActiveSeason, activeGame, setActiveGame, setActiveTab };
