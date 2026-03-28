@@ -232,4 +232,66 @@ router.patch('/:id/minutes', async (req, res) => {
   }
 });
 
+// GET /api/games/:id/goals
+router.get('/:id/goals', async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const goals = await prisma.goal.findMany({
+      where: { gameId },
+      orderBy: { scoredAt: 'asc' },
+      include: { player: { select: { name: true } } },
+    });
+    res.json(goals);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/games/:id/goals
+// Body: { playerId?: number, isOpponent?: boolean }
+router.post('/:id/goals', async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const { playerId, isOpponent = false } = req.body;
+
+    const [goal] = await prisma.$transaction([
+      prisma.goal.create({
+        data: { gameId, playerId: playerId ?? null, isOpponent },
+        include: { player: { select: { name: true } } },
+      }),
+      isOpponent
+        ? prisma.game.update({ where: { id: gameId }, data: { theirScore: { increment: 1 } } })
+        : prisma.game.update({ where: { id: gameId }, data: { ourScore: { increment: 1 } } }),
+    ]);
+
+    res.status(201).json(goal);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/games/:id/goals/:goalId
+router.delete('/:id/goals/:goalId', async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const goalId = parseInt(req.params.goalId);
+
+    const goal = await prisma.goal.findUnique({ where: { id: goalId } });
+    if (!goal) return res.status(404).json({ error: 'Goal not found' });
+
+    const game = await prisma.game.findUnique({ where: { id: gameId } });
+
+    await prisma.$transaction([
+      prisma.goal.delete({ where: { id: goalId } }),
+      goal.isOpponent
+        ? prisma.game.update({ where: { id: gameId }, data: { theirScore: Math.max(0, game.theirScore - 1) } })
+        : prisma.game.update({ where: { id: gameId }, data: { ourScore: Math.max(0, game.ourScore - 1) } }),
+    ]);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
