@@ -83,6 +83,11 @@ export default function SeasonTab({ activeSeason, activeGame, setActiveGame }) {
             {game.date && (
               <span className="game-date">{game.date.slice(0, 10)}</span>
             )}
+            <span className="game-score">
+              {(game.ourScore > 0 || game.theirScore > 0)
+                ? <>{game.ourScore}–{game.theirScore} <span className={game.ourScore > game.theirScore ? 'result-w' : game.ourScore < game.theirScore ? 'result-l' : 'result-d'}>{game.ourScore > game.theirScore ? 'W' : game.ourScore < game.theirScore ? 'L' : 'D'}</span></>
+                : '–'}
+            </span>
             <span className="expand-icon">{expanded === game.id ? '▲' : '▼'}</span>
           </button>
           {expanded === game.id && <GameDetail game={game} />}
@@ -103,6 +108,10 @@ export default function SeasonTab({ activeSeason, activeGame, setActiveGame }) {
         .game-num { font-weight: 600; }
         .game-date { color: var(--text-muted); font-size: 0.85rem; flex: 1; }
         .expand-icon { font-size: 0.7rem; color: var(--text-muted); }
+        .game-score { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+        .result-w { color: #198754; }
+        .result-l { color: #dc3545; }
+        .result-d { color: var(--text-muted); }
         .muted { color: var(--text-muted); font-size: 0.85rem; }
       `}</style>
     </div>
