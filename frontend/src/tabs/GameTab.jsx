@@ -365,10 +365,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
                 >
                   <span className="field-name">{playerName(bp.playerId)}</span>
                   <span className="field-role">{bp.role || '—'}</span>
-                  <span
-                    className="field-leave"
-                    onClick={(e) => { e.stopPropagation(); setLeaveSheet({ playerId: bp.playerId, blockPlayerId: bp.id, role: bp.role }); }}
-                  >×</span>
+
                 </button>
               ))}
             </div>
