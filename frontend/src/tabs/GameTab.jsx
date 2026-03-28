@@ -3,7 +3,7 @@ import { api } from '../api';
 
 const BLOCK_DURATION = 8 * 60; // 8 minutes in seconds
 
-export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
+export default function GameTab({ activeSeason, activeGame, setActiveGame, setActiveTab }) {
   const [games, setGames] = useState([]);
   const [players, setPlayers] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -21,6 +21,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
   const [halftimeSeconds, setHalftimeSeconds] = useState(300);
   const [arrivalSheet, setArrivalSheet] = useState(false);
   const [leaveSheet, setLeaveSheet] = useState(null); // { playerId, blockPlayerId, role }
+  const [isGameOver, setIsGameOver] = useState(false);
   const timerRef = useRef(null);
   const halfTimerRef = useRef(null);
   const halftimeRef = useRef(null);
@@ -150,6 +151,13 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
       }),
     });
 
+    if (currentBlockIdx === 5) {
+      setTimerRunning(false);
+      setHalfTimerRunning(false);
+      setIsGameOver(true);
+      return;
+    }
+
     if (currentBlockIdx === 2) {
       setIsHalftime(true);
       setTimerRunning(false);
@@ -277,6 +285,56 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
 
   if (!activeSeason) return <div className="loading">No active season</div>;
   if (loading) return <div className="loading">Loading plan…</div>;
+
+  if (isGameOver) {
+    const gameLabel = selectedGame
+      ? `Game ${selectedGame.gameNumber}${selectedGame.date ? ` · ${new Date(selectedGame.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
+      : 'Game';
+    const summaryRows = Object.entries(playerMinutes)
+      .map(([id, mins]) => ({ id: parseInt(id), ...mins }))
+      .sort((a, b) => b.totalMinutes - a.totalMinutes);
+    return (
+      <div>
+        <h2 className="section-title">Game Over</h2>
+        <div className="card">
+          <div style={{ fontWeight: 700, marginBottom: '0.75rem' }}>{gameLabel}</div>
+          <table className="gameover-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Min</th>
+                <th>Off</th>
+                <th>Def</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summaryRows.map((row) => (
+                <tr key={row.id}>
+                  <td>{playerName(row.id)}</td>
+                  <td>{Math.round(row.totalMinutes)}</td>
+                  <td>{Math.round(row.offenseMinutes)}</td>
+                  <td>{Math.round(row.defenseMinutes)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button className="primary" style={{ width: '100%', marginTop: '1rem' }} onClick={() => {
+            setActiveGame(null);
+            setIsGameOver(false);
+            setActiveTab('season');
+          }}>
+            Done
+          </button>
+        </div>
+        <style>{`
+          .gameover-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+          .gameover-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid var(--border); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+          .gameover-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); }
+          .gameover-table tr:last-child td { border-bottom: none; }
+        `}</style>
+      </div>
+    );
+  }
 
   const currentBlock = plan ? plan[currentBlockIdx] : null;
   const onField = currentBlock?.blockPlayers.filter((bp) => bp.isOnField) || [];
