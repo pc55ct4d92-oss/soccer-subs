@@ -28,7 +28,7 @@ export default function App() {
       .catch(console.error);
   }, []);
 
-  const ctx = { activeSeason, setActiveSeason, activeGame, setActiveGame };
+  const ctx = { activeSeason, setActiveSeason, activeGame, setActiveGame, setActiveTab };
 
   return (
     <div className="app">
@@ -38,10 +38,10 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {activeTab === 'roster' && <RosterTab {...ctx} />}
-        {activeTab === 'season' && <SeasonTab {...ctx} />}
-        {activeTab === 'setup' && <SetupTab {...ctx} setActiveTab={setActiveTab} />}
-        {activeTab === 'game' && <GameTab {...ctx} />}
+        <div style={{ display: activeTab === 'roster' ? 'block' : 'none' }}><RosterTab {...ctx} /></div>
+        <div style={{ display: activeTab === 'season' ? 'block' : 'none' }}><SeasonTab {...ctx} /></div>
+        <div style={{ display: activeTab === 'setup' ? 'block' : 'none' }}><SetupTab {...ctx} /></div>
+        <div style={{ display: activeTab === 'game' ? 'block' : 'none' }}><GameTab {...ctx} /></div>
       </main>
 
       <nav className="tab-bar">
