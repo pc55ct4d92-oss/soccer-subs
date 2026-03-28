@@ -1,0 +1,20 @@
+-- AlterTable
+ALTER TABLE "Game" ADD COLUMN     "ourScore" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "theirScore" INTEGER NOT NULL DEFAULT 0;
+
+-- CreateTable
+CREATE TABLE "Goal" (
+    "id" SERIAL NOT NULL,
+    "gameId" INTEGER NOT NULL,
+    "playerId" INTEGER,
+    "scoredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "isOpponent" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "Goal_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "Goal" ADD CONSTRAINT "Goal_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Goal" ADD CONSTRAINT "Goal_playerId_fkey" FOREIGN KEY ("playerId") REFERENCES "Player"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -28,6 +28,7 @@ model Player {
   season       Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   gamePlayers  GamePlayer[]
   blockPlayers BlockPlayer[]
+  goals        Goal[]
 }
 
 model Game {
@@ -36,11 +37,14 @@ model Game {
   gameNumber Int
   date       DateTime?
   notes      String?
+  ourScore   Int      @default(0)
+  theirScore Int      @default(0)
   createdAt  DateTime @default(now())
 
   season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   gamePlayers GamePlayer[]
   blocks      Block[]
+  goals       Goal[]
 }
 
 model GamePlayer {
@@ -83,4 +87,14 @@ model BlockPlayer {
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([blockId, playerId])
+}
+
+model Goal {
+  id         Int      @id @default(autoincrement())
+  gameId     Int
+  playerId   Int?
+  scoredAt   DateTime @default(now())
+  isOpponent Boolean  @default(false)
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player     Player?  @relation(fields: [playerId], references: [id], onDelete: SetNull)
 }
