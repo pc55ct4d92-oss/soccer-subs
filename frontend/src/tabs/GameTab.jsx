@@ -17,8 +17,11 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
   const [playerMinutes, setPlayerMinutes] = useState({});
   const [halfTimerSeconds, setHalfTimerSeconds] = useState(0);
   const [halfTimerRunning, setHalfTimerRunning] = useState(false);
+  const [isHalftime, setIsHalftime] = useState(false);
+  const [halftimeSeconds, setHalftimeSeconds] = useState(300);
   const timerRef = useRef(null);
   const halfTimerRef = useRef(null);
+  const halftimeRef = useRef(null);
 
   useEffect(() => {
     if (!activeSeason) return;
@@ -77,6 +80,22 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
     return () => clearInterval(halfTimerRef.current);
   }, [halfTimerRunning]);
 
+  // Halftime countdown — resets to 300 and counts down while isHalftime is true
+  useEffect(() => {
+    if (isHalftime) {
+      setHalftimeSeconds(300);
+      halftimeRef.current = setInterval(() => {
+        setHalftimeSeconds((s) => {
+          if (s <= 1) { clearInterval(halftimeRef.current); return 0; }
+          return s - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(halftimeRef.current);
+    }
+    return () => clearInterval(halftimeRef.current);
+  }, [isHalftime]);
+
   // Block timer logic
   useEffect(() => {
     if (timerRunning) {
@@ -129,11 +148,18 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
       }),
     });
 
-    setBlockStartTime(Date.now());
-    if (currentBlockIdx === 2) setHalfTimerSeconds(0); // halftime reset
+    if (currentBlockIdx === 2) {
+      setIsHalftime(true);
+      setTimerRunning(false);
+      setHalfTimerRunning(false);
+      setHalfTimerSeconds(0);
+      setBlockStartTime(null);
+    } else {
+      setBlockStartTime(Date.now());
+      setTimerRunning(true);
+    }
     setCurrentBlockIdx((i) => i + 1);
     setTimerSeconds(BLOCK_DURATION);
-    setTimerRunning(false);
   };
 
   const toggleRole = async (blockPlayerId, currentRole) => {
@@ -197,6 +223,8 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
             setBlockStartTime(null);
             setHalfTimerSeconds(0);
             setHalfTimerRunning(false);
+            setIsHalftime(false);
+            setHalftimeSeconds(300);
           }}
         >
           {games.map((g) => (
@@ -232,32 +260,50 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
 
           {/* Timer */}
           <div className="timer-card card">
-            <div className={`timer-display ${timerSeconds <= 90 ? 'expired' : ''}`}>
-              {formatTime(timerSeconds)}
-            </div>
-            {halfTimerRunning && (
-              <div className="half-timer">Half: {formatTime(halfTimerSeconds)}</div>
+            {isHalftime ? (
+              <>
+                <div className="halftime-heading">Halftime</div>
+                <div className="halftime-countdown">{formatTime(halftimeSeconds)}</div>
+                <button className="primary" style={{ width: '100%' }} onClick={() => {
+                  setIsHalftime(false);
+                  setHalfTimerSeconds(0);
+                  setHalfTimerRunning(true);
+                  setBlockStartTime(Date.now());
+                  setTimerRunning(true);
+                }}>
+                  Start 2nd Half
+                </button>
+              </>
+            ) : (
+              <>
+                <div className={`timer-display ${timerSeconds <= 90 ? 'expired' : ''}`}>
+                  {formatTime(timerSeconds)}
+                </div>
+                {halfTimerRunning && (
+                  <div className="half-timer">Half: {formatTime(halfTimerSeconds)}</div>
+                )}
+                <div className="timer-btns">
+                  <button
+                    className={timerRunning ? 'secondary' : 'primary'}
+                    onClick={() => {
+                      if (!timerRunning && blockStartTime === null) {
+                        setBlockStartTime(Date.now());
+                        setHalfTimerRunning(true);
+                      }
+                      setTimerRunning((r) => !r);
+                    }}
+                  >
+                    {timerRunning ? 'Pause' : timerSeconds === BLOCK_DURATION ? 'Start' : 'Resume'}
+                  </button>
+                  <button className="secondary" onClick={() => { setTimerSeconds(BLOCK_DURATION); setTimerRunning(false); }}>
+                    Reset
+                  </button>
+                  <button className="primary" onClick={advanceBlock} disabled={currentBlockIdx >= 5}>
+                    Next Block →
+                  </button>
+                </div>
+              </>
             )}
-            <div className="timer-btns">
-              <button
-                className={timerRunning ? 'secondary' : 'primary'}
-                onClick={() => {
-                  if (!timerRunning && blockStartTime === null) {
-                    setBlockStartTime(Date.now());
-                    setHalfTimerRunning(true);
-                  }
-                  setTimerRunning((r) => !r);
-                }}
-              >
-                {timerRunning ? 'Pause' : timerSeconds === BLOCK_DURATION ? 'Start' : 'Resume'}
-              </button>
-              <button className="secondary" onClick={() => { setTimerSeconds(BLOCK_DURATION); setTimerRunning(false); }}>
-                Reset
-              </button>
-              <button className="primary" onClick={advanceBlock} disabled={currentBlockIdx >= 5}>
-                Next Block →
-              </button>
-            </div>
           </div>
 
           {/* Field */}
@@ -303,6 +349,8 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame }) {
         .timer-display { font-size: 3rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 0.25rem; }
         .timer-display.expired { color: #dc3545; }
         .half-timer { font-size: 0.85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-bottom: 1rem; }
+        .halftime-heading { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .halftime-countdown { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-muted); margin-bottom: 1rem; }
         .timer-btns { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
         .timer-btns button { flex: 1; min-width: 80px; }
         .player-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
