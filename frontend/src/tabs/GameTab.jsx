@@ -22,6 +22,8 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
   const [arrivalSheet, setArrivalSheet] = useState(false);
   const [leaveSheet, setLeaveSheet] = useState(null); // { playerId, blockPlayerId, role }
   const [isGameOver, setIsGameOver] = useState(false);
+  const [goals, setGoals] = useState([]);
+  const [scorerSheet, setScorerSheet] = useState(false);
   const timerRef = useRef(null);
   const halfTimerRef = useRef(null);
   const halftimeRef = useRef(null);
@@ -63,6 +65,10 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
         });
         setPlayerMinutes(minutes);
       })
+      .catch(() => {});
+    api(`/api/games/${selectedGame.id}/goals`)
+      .then((r) => r.json())
+      .then((data) => setGoals(data))
       .catch(() => {});
   }, [selectedGame]);
 
@@ -419,6 +425,38 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
             )}
           </div>
 
+          {/* Score */}
+          <div className="card">
+            <div className="score-row">
+              <span className="score-display">Us {goals.filter((g) => !g.isOpponent).length} · Them {goals.filter((g) => g.isOpponent).length}</span>
+            </div>
+            <div className="score-btns">
+              <button className="primary" style={{ flex: 1 }} onClick={() => setScorerSheet(true)}>+ We Scored</button>
+              <button className="secondary" style={{ flex: 1 }} onClick={async () => {
+                const res = await api(`/api/games/${selectedGame.id}/goals`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ isOpponent: true }),
+                });
+                const goal = await res.json();
+                setGoals((prev) => [...prev, goal]);
+              }}>+ They Scored</button>
+            </div>
+            {goals.length > 0 && (
+              <div className="goal-log">
+                {[...goals].reverse().map((g) => (
+                  <div key={g.id} className="goal-row">
+                    <span>⚽ {g.isOpponent ? 'Opponent' : (g.player ? playerName(g.playerId) : 'Unknown')}</span>
+                    <button className="goal-undo" onClick={async () => {
+                      await api(`/api/games/${selectedGame.id}/goals/${g.id}`, { method: 'DELETE' });
+                      setGoals((prev) => prev.filter((x) => x.id !== g.id));
+                    }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Field */}
           <div className="card">
             <h3 className="subsection">On Field ({onField.length})</h3>
@@ -497,6 +535,32 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
             </>
           )}
 
+          {scorerSheet && (
+            <>
+              <div className="sheet-backdrop" onClick={() => setScorerSheet(false)} />
+              <div className="sheet" onClick={(e) => e.stopPropagation()}>
+                <div className="sheet-title">Who scored?</div>
+                <div className="sheet-list">
+                  {onField.filter((bp) => bp.role !== 'goalkeeper').map((bp) => (
+                    <button key={bp.playerId} className="sheet-row" onClick={async () => {
+                      const res = await api(`/api/games/${selectedGame.id}/goals`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ playerId: bp.playerId, isOpponent: false }),
+                      });
+                      const goal = await res.json();
+                      setGoals((prev) => [...prev, goal]);
+                      setScorerSheet(false);
+                    }}>
+                      <span style={{ fontWeight: 600 }}>{playerName(bp.playerId)}</span>
+                    </button>
+                  ))}
+                </div>
+                <button className="sheet-cancel" onClick={() => setScorerSheet(false)}>Cancel</button>
+              </div>
+            </>
+          )}
+
           {leaveSheet && (() => {
             const leavingPlayer = players.find((p) => p.id === leaveSheet.playerId);
             const elapsed = blockStartTime ? (Date.now() - blockStartTime) / 60000 : 0;
@@ -554,6 +618,12 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
         .sheet-list { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem; }
         .sheet-row { display: flex; align-items: center; padding: 0.75rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: white; min-height: 48px; cursor: pointer; text-align: left; }
         .sheet-cancel { width: 100%; padding: 0.75rem; background: var(--border); color: var(--text); border: none; border-radius: var(--radius); font-size: 0.95rem; font-weight: 600; min-height: 48px; cursor: pointer; }
+        .score-row { text-align: center; margin-bottom: 0.75rem; }
+        .score-display { font-size: 1.4rem; font-weight: 700; }
+        .score-btns { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .goal-log { display: flex; flex-direction: column; gap: 0.25rem; border-top: 1px solid var(--border); padding-top: 0.6rem; }
+        .goal-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; padding: 0.15rem 0; }
+        .goal-undo { background: none; border: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 0 0.25rem; min-height: unset; line-height: 1; }
         .subs-list { display: flex; flex-direction: column; gap: 0.25rem; }
         .sub-row { font-size: 0.95rem; padding: 0.2rem 0; }
         .sub-off { color: #721c24; }
