@@ -119,7 +119,7 @@ export default function GameTab({ activeSeason, activeGame, setActiveGame, setAc
   }, [timerRunning]);
 
   const advanceBlock = async () => {
-    if (currentBlockIdx >= 5) return;
+    if (currentBlockIdx > 5) return;
 
     const elapsed = blockStartTime
       ? Math.min(Math.round((Date.now() - blockStartTime) / 60000 * 10) / 10, 8)
